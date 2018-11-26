@@ -76,6 +76,7 @@ _, frame2 = cap.read()
 print("Motion detection is started.")
 last_time_motion_detected = 0
 pin_state = "default"
+frames_to_skip = 0
 
 while(True):
     _, frame3 = cap.read()
@@ -86,6 +87,10 @@ while(True):
 
     frame1 = frame2
     frame2 = frame3
+
+    if frames_to_skip > 0:
+        frames_to_skip -= 1
+        continue
 
     # apply Gaussian smoothing
     mod = cv2.GaussianBlur(dist, (9,9), 0)
@@ -117,8 +122,7 @@ while(True):
         gpio_set(config["action"]["pin"], default_value)
         pin_state = "default"
         # skip next 10 frames to prevent loop because light switch triggers motion detector
-        for _ in range(0, 10):
-            _, _frame_ = cap.read()
+        frames_to_skip = 10
 
 
 cap.release()
