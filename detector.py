@@ -6,16 +6,19 @@ import time
 import argparse
 
 args = argparse.ArgumentParser()
-args.add_argument("-d/--debug", help="show the video input and motion diff")
+args.add_argument("-t", "--threshold", help="motion level to trigger an action", type=int, default=10)
+args.add_argument("--debug", help="show the video input and motion diff", action="store_true")
+options = args.parse_args()
 
 print(f"Using OpenCV {cv2.__version__}")
 
-# Copy-pasted from https://software.intel.com/en-us/node/754940
+# This code is basically an improved version of https://software.intel.com/en-us/node/754940
 
-sdThresh = 10
-font = cv2.FONT_HERSHEY_SIMPLEX
+if options.debug:
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.namedWindow('frame')
+    cv2.namedWindow('dist')
 
-#TODO: Face Detection 1
 def distMap(frame1, frame2):
     """outputs pythagorean distance between two frames"""
     frame1_32 = np.float32(frame1)
@@ -25,19 +28,18 @@ def distMap(frame1, frame2):
     dist = np.uint8(norm32*255)
     return dist
 
-cv2.namedWindow('frame')
-cv2.namedWindow('dist')
-
-#capture video stream from camera source. 0 refers to first camera, 1 referes to 2nd and so on.
+# capture video stream from camera source. 0 refers to first camera, 1 refers to 2nd and so on.
 cap = cv2.VideoCapture(0)
 
 _, frame1 = cap.read()
 _, frame2 = cap.read()
+print("Motion detection is started.")
 
 while(True):
     _, frame3 = cap.read()
-    rows, cols, _ = np.shape(frame3)    
-    cv2.imshow('dist', frame3)
+    rows, cols, _ = np.shape(frame3)
+    if options.debug:
+        cv2.imshow('dist', frame3)
     dist = distMap(frame1, frame3)
 
     frame1 = frame2
@@ -50,19 +52,19 @@ while(True):
     _, thresh = cv2.threshold(mod, 100, 255, 0)
 
     # calculate st dev test
-    _, stDev = cv2.meanStdDev(mod)
+    _, st_dev = cv2.meanStdDev(mod)
+    st_dev = st_dev[0][0]
 
-    cv2.imshow('dist', mod)
-    cv2.putText(frame2, "Standard Deviation - {}".format(round(stDev[0][0],0)), (70, 70), font, 1, (255, 0, 255), 1, cv2.LINE_AA)
+    if options.debug:
+        cv2.imshow('dist', mod)
+        cv2.putText(frame2, "Standard Deviation = {}".format(round(st_dev, 0)), (70, 70), font, 1, (255, 0, 255), 1, cv2.LINE_AA)
+        cv2.imshow('frame', frame2)
 
+        if cv2.waitKey(1) & 0xFF == 27:
+            break
 
-    if stDev > sdThresh:
-        print("Motion detected.. Do something!!!")
-
-    cv2.imshow('frame', frame2)
-
-    if cv2.waitKey(1) & 0xFF == 27:
-        break
+    if st_dev > options.threshold:
+        print(f"Motion detected! Level: {round(st_dev, 1)}")
 
 cap.release()
 cv2.destroyAllWindows()
