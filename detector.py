@@ -20,6 +20,9 @@ config.read("config.ini")
 
 THRESHOLD = options.threshold if options.threshold else int(config["defaults"].get("threshold", 10))
 COOLDOWN = options.cooldown if options.cooldown else int(config["defaults"].get("cooldown", 30))
+HEIGHT = int(config["webcam"]["height"])
+WIDTH = int(config["webcam"]["width"])
+
 
 def timestamp():
     """Get current UNIX time"""
@@ -48,10 +51,11 @@ def gpio_set(pin, value):
         print(f"Pin {pin} is switched to {value}")
 
 
-print(f"Using OpenCV {cv2.__version__}")
-print(f"Cooldown is {COOLDOWN} sec.")
-print(f"Threshold is {THRESHOLD}")
-print("===")
+print(f"# OpenCV {cv2.__version__}")
+print(f"# Threshold  = {THRESHOLD}")
+print(f"# Cooldown   = {COOLDOWN} sec")
+print(f"# Resolution = {HEIGHT}x{WIDTH} px\n")
+
 # This code is basically an improved version of https://software.intel.com/en-us/node/754940
 
 if options.debug:
@@ -60,7 +64,7 @@ if options.debug:
     cv2.namedWindow('dist')
 
 def distMap(frame1, frame2):
-    """outputs pythagorean distance between two frames"""
+    """Pythagorean distance between two frames"""
     frame1_32 = np.float32(frame1)
     frame2_32 = np.float32(frame2)
     diff32 = frame1_32 - frame2_32
@@ -70,6 +74,8 @@ def distMap(frame1, frame2):
 
 # capture video stream from camera source. 0 refers to first camera, 1 refers to 2nd and so on.
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
 
 _, frame1 = cap.read()
 _, frame2 = cap.read()
